@@ -5,24 +5,27 @@ import random
 import os
 import sys
 import base64
-from playwright.async_api import async_playwright
+import subprocess
+
+# ================== AUTO INSTALL PLAYWRIGHT + BROWSERS ==================
+try:
+    from playwright.async_api import async_playwright
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "playwright"])
+    from playwright.async_api import async_playwright
+    subprocess.check_call([sys.executable, "-m", "playwright", "install", "chromium"])
 
 # ================== CONFIG ==================
-
 ENCODED_PASSWORD = "REVWWERJVlU="  # DEVWDDIVU (base64)
-MESSAGES = [
-    "HI BRO ❤️"
-]
+MESSAGES = ["HI BRO ❤️"]
 
 # ================== UTILS ===================
-
 def decode_str(s):
     return base64.b64decode(s).decode("utf-8")
 
 logging.basicConfig(level=logging.WARNING, format="%(asctime)s - %(message)s")
 
-# ================== ENV VARS =================
-
+# ================== ENV VARIABLES =================
 SCRIPT_PASSWORD = os.getenv("SCRIPT_PASSWORD")
 SESSION_ID      = os.getenv("SESSION_ID")
 DM_URL          = os.getenv("DM_URL")
@@ -41,7 +44,6 @@ if TASK_COUNT > 80:
     TASK_COUNT = 80
 
 # ================== STATS ===================
-
 success_count = 0
 unsuccess_count = 0
 counter_lock = asyncio.Lock()
@@ -50,13 +52,12 @@ def print_stats():
     sys.stdout.write(f"\r✅ success: {success_count} ❌ fail: {unsuccess_count}")
     sys.stdout.flush()
 
-# ================== WORKER ==================
-
+# ================== WORKER ===================
 async def send_loop(context):
     global success_count, unsuccess_count
     page = await context.new_page()
 
-    # save RAM
+    # save RAM by blocking images/videos/ads
     await page.route("**/*.{png,jpg,jpeg,gif,webp,svg,mp4,webm,ogg}", lambda r: r.abort())
     await page.route("**/ads/**", lambda r: r.abort())
 
@@ -71,6 +72,8 @@ async def send_loop(context):
 
             base_msg = random.choice(MESSAGES).replace("{target}", TARGET_NAME)
             await msg_input.fill(base_msg)
+            # Typing bubble simulation
+            await asyncio.sleep(random.uniform(0.5, 1.5))
             await page.keyboard.press("Enter")
 
             async with counter_lock:
@@ -86,9 +89,9 @@ async def send_loop(context):
             await asyncio.sleep(5)
 
 # ================== MAIN ====================
-
 async def main():
     async with async_playwright() as p:
+        # launch chromium headless
         browser = await p.chromium.launch(
             headless=True,
             args=[
