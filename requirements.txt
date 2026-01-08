@@ -1,4 +1,7 @@
-playwright
-cfonts
-requests
 python-telegram-bot==20.7
+python-dotenv==1.0.1
+playwright==1.43.0
+playwright-stealth==1.0.6
+instagrapi==2.1.2
+pillow==10.2.0
+requests==2.31.0
